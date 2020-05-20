@@ -1,43 +1,64 @@
 import
-  strformat,
-  strutils,
   os,
-  tables,
-  sequtils,
   re,
-  json
+  json,
+  options,
+  strutils,
+  strformat
 
-proc split_backslash_last*(str: string): string =
-    return str.split("/")[^1]
+func split_backslash_last*(str: string): string =
+  return str.split("/")[^1]
 
 proc generate_filepath*(filename: string): string =
-    return &"{getHomeDir()}/Downloads/{filename}"
+  return &"{getHomeDir()}Downloads/{filename}"
 
-proc prefix_filename*(old_name: string, new_name: string, number: int): string =
-    let img_ext = old_name.split(".")[^1]
-    let number_prefix = intToStr(number).align(3, char(0))
-    return &"{number_prefix}_{new_name}.{img_ext}"
+func prefix_filename*(old_name: string, new_name: string, number: int): string =
+  let
+    img_ext = old_name.split(".")[^1]
+    number_prefix = number.intToStr.align(3, '0')
+  return &"{number_prefix}_{new_name}.{img_ext}"
 
-proc prefix_artist_name*(name: string, number: int): string =
-    let number_prefix = intToStr(number).align(2, char(0))
-    return &"{number_prefix}\n{' '.repeat(19)}{name}"
+func prefix_artist_name*(name: string, number: int): string =
+  let number_prefix = number.intToStr.align(2, '0')
+  return &"{number_prefix}\n{' '.repeat(19)}{name}"
 
-proc print_multiple_imgs*(illusts_json: JsonNode) =
-    for (index, json) in illusts_json.pairs:
-        let pages = json["page_count"].getInt
-        if pages > 1:
-            echo(&"#{index} has {pages} pages")
-    echo("")
+proc find_number_map*(x, y: int): Option[int] =
+  #[ Translates 1-based-index coordinates into (0-) indexable number
+  5 columns and 6 rows == 30 images
+  -1 accounts for the input being 1-based-index but python being 0-based
+  mod 5: x is cyclic for every 5
+  +5y: adding a 5 for every row 'moves one square down' on the 5x6 grid
 
-proc url_given_size*(post_json: JsonNode, size: string): string =
-    return post_json["image_urls"][size].getStr
+  >>> a = [find_number_map(x,y) for y in range(1,7) for x in range(1,6)]
+  >>> assert a == list(range(30))
+  ]#
+  if not (1 <= x and x <= 5 and 1 <= y and y <= 6):
+    echo "Invalid number!"
+    return none(int)
+  return some(((x - 1) mod 5) + (5 * (y - 1)))
 
-proc post_title*(current_page_illusts: JsonNode, post_number: int): string =
-    return current_page_illusts[post_number]["title"].getStr
+proc print_multiple_imgs*(illusts_json: JsonNode): auto =
+  var i = 0
+  while i < illusts_json.len:
+    var pages = illusts_json[i]["page_count"].getInt
+    if pages > 1:
+      echo &"#{i} has {pages} pages"
+    i += 1
+  echo ""
 
-proc medium_urls*(current_page_illusts: JsonNode): auto =
-    for i in current_page_illusts:
-      return url_given_size(i, size="square-medium") # FIXME
+func url_given_size*(post_json: JsonNode, size: string): string =
+  return post_json["image_urls"][size].getStr
+
+func post_title*(current_page_illusts: JsonNode, post_number: int): string =
+  return current_page_illusts[post_number]["title"].getStr
+
+func medium_urls*(current_page_illusts: JsonNode): seq[string] =
+  for i in current_page_illusts:
+    result.add(i["image_urls"]["square_medium"].getStr)
+
+func post_titles_in_page*(current_page_illusts: JsonNode): seq[string] =
+  for i in 0..<current_page_illusts.len:
+    result.add(post_title(current_page_illusts, i))
 
 proc page_urls_in_post*(post_json: JsonNode, size: string = "medium"): (int, seq[string]) =
   let number_of_pages = post_json["page_count"].getInt
@@ -45,31 +66,39 @@ proc page_urls_in_post*(post_json: JsonNode, size: string = "medium"): (int, seq
   if number_of_pages > 1:
     echo &"Page 1/{number_of_pages}"
     let list_of_pages = post_json["meta_pages"]
-    for i in 0..number_of_pages:
+    for i in 0..<number_of_pages:
       page_urls.add(url_given_size(list_of_pages[i], size))
   else:
     page_urls = @[url_given_size(post_json, size)]
 
   result = (number_of_pages, page_urls)
 
-proc change_url_to_full*(png: bool = false, url: string): string =
-    var newurl = url.replace(re"_master\d+")
-    newurl = newurl.replace(re"c\/\d+x\d+_\d+_\w+\/img-master", "img-original")
+func change_url_to_full*(url: string, png: bool = false): string =
+  var newurl = url.replace(re"_master\d+")
+  newurl = newurl.replace(re"c\/\d+x\d+_\d+_\w+\/img-master", "img-original")
 
-    # If it doesn't work, try changing to png
-    if png:
-        newurl = newurl.replace("jpg", "png")
-    return url
+  # If it doesn't work, try changing to png
+  if png:
+      newurl = newurl.replace("jpg", "png")
+  return url
 
-#[
-echo(split_backslash_last("s/das/24451"))
-echo(generate_filepath("hi"))
-echo(prefix_filename("hi.jpg", "hello", 2))
-echo(prefixArtistName("raika9", 2))
-printMultipleImgs({"1": {"page_count": 2}.totable}.totable)
-echo urlGivenSize({"image_urls": {"square-medium": "www"}.totable}.totable, "square-medium")
-echo postTitle(@[{"title": "hi"}.totable], 0)
-echo mediumUrls(@[{"image_urls": {"square-medium": "www"}.totable}.totable])
+func process_user_url*(url_or_id: string): (string, string) =
+  var user_input: string
+  if "users" in url_or_id:
+    if "\\" in url_or_id:
+      user_input = split_backslash_last(url_or_id).split("\\")[^1][1..^1]
+    else:
+      user_input = split_backslash_last(url_or_id)
+  else:
+    user_input = url_or_id
+  return (user_input, "1")
 
-echo changeUrlToFull(false, "https://i.pximg.net/img-master/img/2019/06/02/15/12/13/75023234_p3_master1200.jpg")
-]#
+func process_artwork_url*(url_or_id: string): (string, string) =
+  var user_input: string
+  if "artworks" in url_or_id:
+    user_input = split_backslash_last(url_or_id).split("\\")[0]
+  elif "illust_id" in url_or_id:
+    user_input = url_or_id.findall(re"&illust_id.*")[0].split("=")[^1]
+  else:
+    user_input = url_or_id
+  return (user_input, "2")
