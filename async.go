@@ -6,6 +6,8 @@ import (
 	"math"
 	"math/rand"
 	"os/exec"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -143,7 +145,9 @@ func main() {
 	image_chan := make(chan string, 29)
 
 	var images []string
-	files, _ := ioutil.ReadDir("/home/twenty/.local/share/koneko/cache/2232374/1")
+	usr, _ := user.Current()
+	dir := usr.HomeDir
+	files, _ := ioutil.ReadDir(filepath.Join(dir, ".local/share/koneko/cache/2232374/1"))
 	for _, file := range files {
 		images = append(images, file.Name())
 	}
