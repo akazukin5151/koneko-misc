@@ -10,5 +10,6 @@ Python | Easiest to use, looks the best | Kinda slow sometimes | Runtime errors 
 Nim | Static type checking, small single executable binary, UFCS, looks nice too | Small community, lack of docs | The effort & time needed to optimise it could have gone to writing more Python
 Julia | Like Python but has piping macros. Faster for numerical stuff | Despite it being dynamically typed, it's really statically typed *and* compiled, making it slow for a dynamic, "interpreted" language | Compiling to an executable binary takes forever
 Go | Best vim integration, single executable binary, static type checking | Channels deadlocking | No batteries included, need to write elementary functions like lst.index(), contains(), filter(). Syntax is archaic and Verbose, less than C/C++/C# but not by much. Worse thing is that its performance was comparable to Nim's, so it was more confusing than Nim without any speed benefits.
+Elixir | Functional style (pipes, recursion, immutability) looks great and flows well. Built-in actor based concurrency. | `icat` doesn't work out of the box | Functional programming initially needs some time to get used to
 
 Go is very opinionated, which isn't bad, but it's opinionated on relatively minor things while still being archaic in every other major thing
