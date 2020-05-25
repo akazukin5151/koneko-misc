@@ -13,3 +13,16 @@ Go | Best vim integration, single executable binary, static type checking | Chan
 Elixir | Functional style (pipes, recursion, immutability) looks great and flows well. Built-in actor based concurrency. | Functional programming initially needs some time to get used to, `mix escript.build` for compiling to single binary is weird | `icat` doesn't work, even with erlport
 
 Go is very opinionated, which isn't bad, but it's opinionated on relatively minor things while still being archaic in every other major thing
+
+
+My opinions on OOP:
+
+* Avoid encapsulating data and behaviour together.
+    * The classes in data.py solely handles storage and manipulation of data requested from pixiv, with completely pure functions/methods. 
+* For me, using classes serves only two purposes: let other functions directly call a behaviour, and to reduce code duplication/enable code reuse. Nothing else.
+    * The prompt functions can call methods upon user interaction. Code duplication between the two gallery modes (1 & 5), and the two user modes (3 & 4) is reduced.
+
+* **Avoid modelling real world objects and nouns to avoid the circle-ellipse/square-rectangle problem; model behavior instead**. Aim for code reuse by **extracting common behaviors out**. For example, if procedure X has subroutines A -> B -> C -> D, and procedure Y has subroutines A -> B -> C -> E, then their abstract base class would contain *behaviors* A -> B -> C. X and Y will both inherit from the ABC, then define their D/E method separately (in other words, **child classes should add functionality, not remove them from the base class**). So, use inheritance only for code reuse. Instead of modelling a "is-a" relationship, **inheritance should model "has behaviour" relationship, which means composition is better most times**. Of course, this can be simply done with functions instead of classes. Use good judgement.
+
+* **Avoiding inheritance deeper than two levels max also avoids the diamond problem and mitigates the fragile base class problem**. Never use multiple inheritance for inheritance; mixins are fine, but prefer composition over inheritance, and functions for mixins with no state. Child classes should only offer minimal extensions to their base classes just to reflect the different nature of their modes.
+    * The classes in ui.py must only contain behaviour, while state is stored in the classes in data.py and their data manipulated with pure functions.
