@@ -26,6 +26,8 @@ Go is very opinionated, which isn't bad, but it's opinionated on relatively mino
 
 # My opinions on OOP:
 
+**TLDR:** Use the [template method design pattern](https://en.wikipedia.org/wiki/Template_method_pattern)
+
 * Avoid encapsulating data and behaviour together.
     * The classes in data.py solely handles storage and manipulation of data requested from pixiv, with completely pure functions/methods. 
 * For me, using classes serves only two purposes: let other functions directly call a behaviour, and to reduce code duplication/enable code reuse. Nothing else.
