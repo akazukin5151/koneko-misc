@@ -2,26 +2,24 @@ use std::fs;
 use std::thread;
 use std::string::String;
 use std::convert::TryInto;
-use std::ops::RangeInclusive;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 extern crate cmd_lib;
 extern crate dirs_next;
 
 fn producer(sender: Sender<String>, files: &Vec<String>) {
-    for file in files {
-        let sender = sender.clone();
-        sender.send(file.to_string()).unwrap();
-    }
+    files.iter().for_each(|f| {
+        sender.send(f.to_string()).unwrap();
+    });
     drop(sender);
 }
 
 fn consumer(tracker: Receiver<String>, image: Sender<String>) {
     let mut downloaded: Vec<i32> = vec![];
     let mut paths: Vec<String> = vec![];
-    let orders: RangeInclusive<i32> = 0..=29;
+    let mut orders: Vec<i32> = (0..=29).into_iter().collect();
 
-    consumer_loop(&tracker, &image, &mut downloaded, &mut paths, 0, &orders);
+    consumer_loop(&tracker, &image, &mut downloaded, &mut paths, &mut orders);
 }
 
 fn consumer_loop(
@@ -29,41 +27,34 @@ fn consumer_loop(
     image: &Sender<String>,
     mut downloaded: &mut Vec<i32>,
     mut paths: &mut Vec<String>,
-    number: i32,
-    orders: &RangeInclusive<i32>,
+    mut orders: &mut Vec<i32>,
 ) {
-    if downloaded.iter().any(|&x| x == number) {
-        // Send to display channel
-        image.send(int_to_file(&number, paths)).unwrap();
+    loop {
+        let number: i32 = match orders.into_iter().nth(0) {
+            Some(num) => *num,
+            _ => return
+        };
 
-        // Inspect int list with next accepted number
-        downloaded.retain(|&x| x != number);
-        consumer_loop(
-            &tracker,
-            &image,
-            &mut downloaded,
-            &mut paths,
-            number + 1,
-            orders,
-        );
-    }
+        if downloaded.iter().any(|&x| x == number) {
+            // Send to display channel
+            image.send(int_to_file(&number, paths)).unwrap();
 
-    // On receiving a completed download, store the filename number
-    let msg = &tracker.recv();
-    match msg {
-        Ok(img) => {
-            downloaded.push(file_to_int(img));
-            paths.push(img.to_string());
-            consumer_loop(
-                &tracker,
-                &image,
-                &mut downloaded,
-                &mut paths,
-                number,
-                orders,
-            );
+            // Inspect int list with next accepted number
+            downloaded.retain(|&x| x != number);
+            orders.remove(0);
+            continue;
         }
-        Err(_) => {}
+
+        // On receiving a completed download, store the filename number
+        let msg = &tracker.recv();
+        match msg {
+            Ok(img) => {
+                downloaded.push(file_to_int(img));
+                paths.push(img.to_string());
+                continue;
+            }
+            Err(_) => return
+        }
     }
 }
 
