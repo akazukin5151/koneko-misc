@@ -37,15 +37,15 @@ defmodule Consumer do
   end
 
   defp remove_int(list, number) do
-    Enum.filter(list, fn x -> x != number end)
+    list |> Enum.filter(fn x -> x != number end)
   end
 
   def remove_file(list, number) do
-    Enum.filter(list, fn x -> file_to_int(x) != number end)
+    list |> Enum.filter(fn x -> file_to_int(x) != number end)
   end
 
   defp int_to_file(number, downloaded) do
-    Enum.filter(downloaded, fn x -> file_to_int(x) == number end)
+    downloaded |> Enum.filter(fn x -> file_to_int(x) == number end)
   end
 
   def file_to_int(path) do
@@ -56,7 +56,7 @@ end
 defmodule Producer do
   def init(files, display) do
     pid = spawn(fn -> Consumer.init(display) end)
-    Enum.map(files, fn x -> pid |> send(x) end)
+    files |> Enum.map(fn x -> pid |> send(x) end)
   end
 end
 
