@@ -1,11 +1,12 @@
 defmodule Consumer do
   def init(display) do
-    loop([], 0, display, [], 0..29 |> Enum.to_list)
-    # Test with orders = [1, 2, 3, 4]
+    loop([], display, [], 0..29 |> Enum.to_list)
   end
 
-  defp loop(downloaded, number, display, paths, orders) do
-    nextnum = Enum.at(orders, number)
+  defp loop(downloaded, display, paths, []), do: :ok
+
+  defp loop(downloaded, display, paths, [head | tail]) do
+    nextnum = head
 
     cond do
       nextnum in downloaded ->
@@ -15,7 +16,7 @@ defmodule Consumer do
         # Inspect next accepted number in order
         downloaded
         |> remove_int(nextnum)
-        |> loop(number + 1, display, paths |> remove_file(nextnum), orders)
+        |> loop(display, paths |> remove_file(nextnum), tail)
 
       true ->
         :ok
@@ -27,7 +28,7 @@ defmodule Consumer do
         msg
         |> file_to_int
         |> append(downloaded)
-        |> loop(number, display, msg |> append(paths), orders)
+        |> loop(display, msg |> append(paths), [head | tail])
     end
   end
 
