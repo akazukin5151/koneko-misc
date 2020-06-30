@@ -3,20 +3,20 @@ defmodule Consumer do
     loop([], display, [], 0..29 |> Enum.to_list)
   end
 
-  defp loop(downloaded, display, paths, []), do: :ok
+  defp loop(numlist, display, downloaded, []), do: :ok
 
-  defp loop(downloaded, display, paths, [head | tail]) do
+  defp loop(numlist, display, downloaded, [head | tail]) do
     nextnum = head
 
     cond do
-      nextnum in downloaded ->
+      nextnum in numlist ->
         # Send to display "channel"
-        display |> send(nextnum |> int_to_file(paths))
+        display |> send(nextnum |> int_to_file(downloaded))
 
         # Inspect next accepted number in order
-        downloaded
+        numlist
         |> remove_int(nextnum)
-        |> loop(display, paths |> remove_file(nextnum), tail)
+        |> loop(display, downloaded |> remove_file(nextnum), tail)
 
       true ->
         :ok
@@ -27,8 +27,8 @@ defmodule Consumer do
       msg ->
         msg
         |> file_to_int
-        |> append(downloaded)
-        |> loop(display, msg |> append(paths), [head | tail])
+        |> append(numlist)
+        |> loop(display, msg |> append(downloaded), [head | tail])
     end
   end
 
@@ -44,8 +44,8 @@ defmodule Consumer do
     Enum.filter(list, fn x -> file_to_int(x) != number end)
   end
 
-  defp int_to_file(number, paths) do
-    Enum.filter(paths, fn x -> file_to_int(x) == number end)
+  defp int_to_file(number, downloaded) do
+    Enum.filter(downloaded, fn x -> file_to_int(x) == number end)
   end
 
   def file_to_int(path) do
